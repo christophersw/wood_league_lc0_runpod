@@ -14,7 +14,7 @@ This is now the canonical Lc0 RunPod worker repo for Woodland Chess.
 ## Environment variables
 
 Required:
-- `DATABASE_URL`
+- `DATABASE_URL` (`postgres://...` or `postgresql://...`; worker forces psycopg v3)
 
 Optional:
 - `LC0_PATH` (default: `/usr/local/bin/lc0`)
