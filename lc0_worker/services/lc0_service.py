@@ -131,9 +131,10 @@ def _classify(
 def analyze_pgn(
     pgn_text: str,
     lc0_path: str,
-    nodes: int = 800,
+    nodes: int = 25000,
     move_callback: "callable[[int, int, str], None] | None" = None,
     weights_path: str = "",
+    syzygy_path: str = "",
 ) -> Lc0GameResult:
     """Analyze a full PGN with Lc0 and return per-move WDL results."""
     game = chess.pgn.read_game(io.StringIO(pgn_text))
@@ -157,6 +158,8 @@ def analyze_pgn(
         config: dict[str, str] = {"UCI_ShowWDL": "true"}
         if weights_path:
             config["WeightsFile"] = weights_path
+        if syzygy_path:
+            config["SyzygyPath"] = syzygy_path
         engine.configure(config)
 
         board = game.board()

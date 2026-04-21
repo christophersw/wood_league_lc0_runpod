@@ -18,8 +18,9 @@ Required:
 
 Optional:
 - `LC0_PATH` (default: `/usr/local/bin/lc0`)
-- `LC0_NODES` (default: `800`)
+- `LC0_NODES` (default: `25000`)
 - `LC0_NETWORK` (default: `/usr/local/share/lc0-network.pb.gz`)
+- `LC0_SYZYGY_PATH` (default: `/runpod-volume/syzygy`, directory containing `.rtbw` and `.rtbz`)
 
 ## Build and run locally
 

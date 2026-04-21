@@ -32,7 +32,7 @@ class AnalysisJob(Base):
     engine: Mapped[str] = mapped_column(String(16), default="lc0", index=True)
     priority: Mapped[int] = mapped_column(Integer, default=0)
     # depth column stores node budget for Lc0 (reuses same field name for queue compatibility)
-    depth: Mapped[int] = mapped_column(Integer, default=800)
+    depth: Mapped[int] = mapped_column(Integer, default=25000)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

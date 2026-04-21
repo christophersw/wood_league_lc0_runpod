@@ -21,8 +21,9 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 LC0_PATH: str = os.environ.get("LC0_PATH", "/usr/local/bin/lc0")
-LC0_NODES: int = int(os.environ.get("LC0_NODES", "800"))
+LC0_NODES: int = int(os.environ.get("LC0_NODES", "25000"))
 LC0_NETWORK: str = os.environ.get("LC0_NETWORK", "")
+LC0_SYZYGY_PATH: str = os.environ.get("LC0_SYZYGY_PATH", "/runpod-volume/syzygy")
 DATABASE_URL: str = os.environ["DATABASE_URL"]
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
@@ -105,7 +106,12 @@ def handler(job: dict) -> dict:
     weights_path: str = str(job_input.get("weights_path", LC0_NETWORK))
     runpod_job_id: str = job.get("id", "")
 
-    log.info("Starting Lc0 analysis: game_id=%s nodes=%d", game_id, nodes)
+    log.info(
+        "Starting Lc0 analysis: game_id=%s nodes=%d syzygy=%s",
+        game_id,
+        nodes,
+        LC0_SYZYGY_PATH,
+    )
 
     try:
         result = analyze_pgn(
@@ -113,6 +119,7 @@ def handler(job: dict) -> dict:
             lc0_path=LC0_PATH,
             nodes=nodes,
             weights_path=weights_path,
+            syzygy_path=LC0_SYZYGY_PATH,
         )
     except Exception as exc:
         log.error("Analysis failed for game_id=%s: %s", game_id, exc, exc_info=True)
