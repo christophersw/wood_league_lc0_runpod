@@ -1,0 +1,39 @@
+name: Validate Lc0 RunPod Docker Build
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - Dockerfile
+      - handler.py
+      - pyproject.toml
+      - README.md
+      - lc0_worker/**
+      - .github/workflows/docker-pr-build.yml
+      - .github/workflows/docker-publish.yml
+  workflow_dispatch:
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: woodland-lc0-runpod:pr-check
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

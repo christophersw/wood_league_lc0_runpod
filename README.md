@@ -40,6 +40,24 @@ docker build -t <docker-username>/woodland-lc0-runpod:latest .
 docker push <docker-username>/woodland-lc0-runpod:latest
 ```
 
+## Automated Docker Hub publish
+
+This repository now includes GitHub Actions workflows that:
+- build the Docker image on pull requests without pushing
+- build and push the image to Docker Hub on pushes to `main` or `master`
+
+Published tags:
+- `latest`
+- short commit SHA (for example: `sha-abc1234`)
+
+Required GitHub repository secrets:
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN`
+
+Workflow files:
+- `.github/workflows/docker-pr-build.yml`
+- `.github/workflows/docker-publish.yml`
+
 ## Direct migration
 
 Use this repo as the only Lc0 RunPod image source.
