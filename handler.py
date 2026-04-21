@@ -1,0 +1,149 @@
+"""RunPod Serverless handler for Lc0 analysis."""
+from __future__ import annotations
+
+import logging
+import os
+from datetime import datetime, timezone
+
+import runpod
+import sqlalchemy.exc
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker
+
+from lc0_worker.services.lc0_service import analyze_pgn
+from lc0_worker.storage.models import AnalysisJob, Lc0GameAnalysis, Lc0MoveAnalysis
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger(__name__)
+
+LC0_PATH: str = os.environ.get("LC0_PATH", "/usr/local/bin/lc0")
+LC0_NODES: int = int(os.environ.get("LC0_NODES", "800"))
+LC0_NETWORK: str = os.environ.get("LC0_NETWORK", "")
+DATABASE_URL: str = os.environ["DATABASE_URL"]
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+
+_engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+_SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False)
+
+
+def _save_analysis(session, game_id: str, result) -> None:
+    lga = session.execute(
+        select(Lc0GameAnalysis).where(Lc0GameAnalysis.game_id == game_id)
+    ).scalar_one_or_none()
+
+    if lga is None:
+        lga = Lc0GameAnalysis(game_id=game_id)
+        session.add(lga)
+        session.flush()
+
+    lga.analyzed_at = result.analyzed_at
+    lga.engine_nodes = result.engine_nodes
+    lga.network_name = result.network_name
+    lga.white_win_prob = result.white_stats.avg_win_prob
+    lga.white_draw_prob = result.white_stats.avg_draw_prob
+    lga.white_loss_prob = result.white_stats.avg_loss_prob
+    lga.black_win_prob = result.black_stats.avg_win_prob
+    lga.black_draw_prob = result.black_stats.avg_draw_prob
+    lga.black_loss_prob = result.black_stats.avg_loss_prob
+    lga.white_blunders = result.white_stats.blunders
+    lga.white_mistakes = result.white_stats.mistakes
+    lga.white_inaccuracies = result.white_stats.inaccuracies
+    lga.black_blunders = result.black_stats.blunders
+    lga.black_mistakes = result.black_stats.mistakes
+    lga.black_inaccuracies = result.black_stats.inaccuracies
+
+    for old in list(lga.moves):
+        session.delete(old)
+    session.flush()
+
+    for mr in result.moves:
+        session.add(
+            Lc0MoveAnalysis(
+                analysis_id=lga.id,
+                ply=mr.ply,
+                san=mr.san,
+                fen=mr.fen,
+                wdl_win=mr.wdl_win,
+                wdl_draw=mr.wdl_draw,
+                wdl_loss=mr.wdl_loss,
+                cp_equiv=mr.cp_equiv,
+                best_move=mr.best_move,
+                arrow_uci=mr.arrow_uci,
+                move_win_delta=mr.move_win_delta,
+                classification=mr.classification,
+            )
+        )
+
+
+def _mark_job_completed(session, game_id: str, runpod_job_id: str) -> None:
+    job = session.execute(
+        select(AnalysisJob).where(
+            AnalysisJob.game_id == game_id,
+            AnalysisJob.engine == "lc0",
+            AnalysisJob.runpod_job_id == runpod_job_id,
+        )
+    ).scalar_one_or_none()
+
+    if job:
+        job.status = "completed"
+        job.completed_at = datetime.now(timezone.utc)
+        if job.submitted_at:
+            elapsed = job.completed_at - job.submitted_at.replace(tzinfo=timezone.utc)
+            job.duration_seconds = elapsed.total_seconds()
+
+
+def handler(job: dict) -> dict:
+    job_input = job["input"]
+    game_id: str = job_input["game_id"]
+    pgn_string: str = job_input["pgn"]
+    nodes: int = int(job_input.get("nodes", LC0_NODES))
+    weights_path: str = str(job_input.get("weights_path", LC0_NETWORK))
+    runpod_job_id: str = job.get("id", "")
+
+    log.info("Starting Lc0 analysis: game_id=%s nodes=%d", game_id, nodes)
+
+    try:
+        result = analyze_pgn(
+            pgn_text=pgn_string,
+            lc0_path=LC0_PATH,
+            nodes=nodes,
+            weights_path=weights_path,
+        )
+    except Exception as exc:
+        log.error("Analysis failed for game_id=%s: %s", game_id, exc, exc_info=True)
+        return {"game_id": game_id, "status": "error", "error": str(exc)}
+
+    try:
+        with _SessionLocal() as session:
+            _save_analysis(session, game_id, result)
+            _mark_job_completed(session, game_id, runpod_job_id)
+            session.commit()
+    except sqlalchemy.exc.OperationalError:
+        raise
+    except Exception as exc:
+        log.error("DB write failed for game_id=%s: %s", game_id, exc, exc_info=True)
+        return {"game_id": game_id, "status": "error", "error": str(exc)}
+
+    log.info(
+        "Completed Lc0 analysis: game_id=%s moves=%d W-win=%.1f B-win=%.1f",
+        game_id,
+        len(result.moves),
+        result.white_stats.avg_win_prob,
+        result.black_stats.avg_win_prob,
+    )
+
+    return {
+        "game_id": game_id,
+        "moves_analysed": len(result.moves),
+        "white_win_prob": result.white_stats.avg_win_prob,
+        "black_win_prob": result.black_stats.avg_win_prob,
+        "status": "ok",
+    }
+
+
+runpod.serverless.start({"handler": handler})

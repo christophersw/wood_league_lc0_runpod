@@ -1,0 +1,50 @@
+# woodland_lc0_runpod
+
+RunPod Serverless worker for Lc0 game analysis.
+
+This is now the canonical Lc0 RunPod worker repo for Woodland Chess.
+
+## What it does
+
+- Receives jobs with `game_id` and `pgn`
+- Runs Lc0 analysis
+- Writes `lc0_game_analysis` and `lc0_move_analysis` directly to PostgreSQL
+- Marks matching `analysis_jobs` row as `completed`
+
+## Environment variables
+
+Required:
+- `DATABASE_URL`
+
+Optional:
+- `LC0_PATH` (default: `/usr/local/bin/lc0`)
+- `LC0_NODES` (default: `800`)
+- `LC0_NETWORK` (default: `/usr/local/share/lc0-network.pb.gz`)
+
+## Build and run locally
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+
+export DATABASE_URL="postgresql://user:pass@host/db"
+export LC0_PATH="/usr/local/bin/lc0"
+python handler.py
+```
+
+## Docker image
+
+```bash
+docker build -t <docker-username>/woodland-lc0-runpod:latest .
+docker push <docker-username>/woodland-lc0-runpod:latest
+```
+
+## Direct migration
+
+Use this repo as the only Lc0 RunPod image source.
+
+With the new layout:
+- `woodland_dispatchers` submits Lc0 jobs to RunPod
+- `woodland_lc0_runpod` executes Lc0 analysis on RunPod
+- `woodland_lc0` no longer needs to be the deployed submitter/image repo
