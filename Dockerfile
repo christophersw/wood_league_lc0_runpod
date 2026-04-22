@@ -42,13 +42,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         python3.11 \
         python3.11-venv \
-        python3-pip \
         curl \
         libopenblas0 \
         zlib1g \
     && ln -sf /usr/bin/python3.11 /usr/local/bin/python \
     && ln -sf /usr/bin/python3.11 /usr/local/bin/python3 \
-    && ln -sf /usr/bin/pip3 /usr/local/bin/pip \
+    && python3.11 -m ensurepip --upgrade \
+    && python3.11 -m pip install --no-cache-dir --upgrade pip setuptools wheel \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/bin/lc0 /usr/local/bin/lc0
@@ -61,6 +61,6 @@ COPY pyproject.toml README.md ./
 COPY lc0_worker ./lc0_worker
 COPY handler.py ./
 
-RUN pip install --no-cache-dir .
+RUN python3.11 -m pip install --no-cache-dir .
 
-CMD ["python", "handler.py"]
+CMD ["python3.11", "handler.py"]
