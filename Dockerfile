@@ -15,12 +15,13 @@ RUN apt-get update \
         zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Build lc0 v0.32.1 with CUDA/cuDNN backend. PTX forward-compatibility means the
-# resulting binary will JIT-compile for sm_120 (Blackwell / RTX 5090) via the CUDA
-# 12.8 driver.
+# Build lc0 v0.32.1 with the cuDNN backend enabled. v0.32.1 does not support a
+# "-Dbackends=cuda" option; the real Meson flags are plain_cuda/cudnn. We enable
+# cuDNN explicitly because the worker defaults to the cudnn-fp16 runtime backend,
+# and disable gtest to avoid unnecessary test build dependencies in CI.
 RUN git clone --branch v0.32.1 --depth 1 --recurse-submodules https://github.com/LeelaChessZero/lc0.git /tmp/lc0 \
     && cd /tmp/lc0 \
-    && ./build.sh -Dbackends=cuda \
+    && ./build.sh -Dcudnn=true -Dgtest=false -Ddefault_backend=cudnn-fp16 \
     && cp build/release/lc0 /usr/local/bin/lc0 \
     && chmod +x /usr/local/bin/lc0 \
     && rm -rf /tmp/lc0
