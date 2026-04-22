@@ -1,13 +1,18 @@
-FROM python:3.11-slim
+# RTX 5090 (Blackwell / sm_120) requires CUDA >= 12.8
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    LC0_NETWORK=/usr/local/share/lc0-network.pb.gz
+    LC0_NETWORK=/usr/local/share/lc0-network.pb.gz \
+    DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        python3.11 \
+        python3.11-venv \
+        python3-pip \
         curl \
         git \
         meson \
@@ -15,11 +20,17 @@ RUN apt-get update \
         build-essential \
         libopenblas-dev \
         zlib1g-dev \
+    && ln -sf /usr/bin/python3.11 /usr/local/bin/python \
+    && ln -sf /usr/bin/python3.11 /usr/local/bin/python3 \
+    && ln -sf /usr/bin/pip3 /usr/local/bin/pip \
     && rm -rf /var/lib/apt/lists/*
 
+# Build lc0 with CUDA backend targeting Blackwell (sm_120)
 RUN git clone --recurse-submodules https://github.com/LeelaChessZero/lc0.git /tmp/lc0 \
     && cd /tmp/lc0 \
-    && ./build.sh \
+    && CUDA_VISIBLE_DEVICES="" ./build.sh \
+        -Dbackends=cuda \
+        -Dcuda_arch="sm_120" \
     && cp build/release/lc0 /usr/local/bin/lc0 \
     && chmod +x /usr/local/bin/lc0 \
     && rm -rf /tmp/lc0
