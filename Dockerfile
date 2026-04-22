@@ -34,6 +34,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     LC0_NETWORK=/usr/local/share/lc0-network.pb.gz \
     LC0_PATH=/usr/local/bin/lc0 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH=/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
@@ -42,13 +44,11 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         python3 \
         python3-venv \
-        python3-pip \
         curl \
         libopenblas0 \
         zlib1g \
-    && ln -sf /usr/bin/python3 /usr/local/bin/python \
-    && ln -sf /usr/bin/python3 /usr/local/bin/python3 \
-    && python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/bin/lc0 /usr/local/bin/lc0
@@ -61,6 +61,6 @@ COPY pyproject.toml README.md ./
 COPY lc0_worker ./lc0_worker
 COPY handler.py ./
 
-RUN python3 -m pip install --no-cache-dir .
+RUN /opt/venv/bin/pip install --no-cache-dir .
 
-CMD ["python3", "handler.py"]
+CMD ["python", "handler.py"]
