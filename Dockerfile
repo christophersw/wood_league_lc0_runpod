@@ -1,7 +1,7 @@
 # ── Stage 1: build lc0 from source against CUDA 12.8 ─────────────────────────
 # No Linux pre-built lc0 binary exists — all release assets are Windows/Android.
 # CUDA 12.8 devel image required for the nvcc compiler.
-FROM nvidia/cuda:12.8.0-cudnn9-devel-ubuntu22.04 AS builder
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -26,8 +26,8 @@ RUN git clone --branch v0.32.1 --depth 1 --recurse-submodules https://github.com
     && rm -rf /tmp/lc0
 
 # ── Stage 2: slim runtime image ───────────────────────────────────────────────
-# cudnn9-runtime ships only the CUDA + cuDNN shared libs needed to run lc0.
-FROM nvidia/cuda:12.8.0-cudnn9-runtime-ubuntu22.04
+# cudnn-runtime ships only the CUDA + cuDNN shared libs needed to run lc0.
+FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
