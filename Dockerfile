@@ -26,11 +26,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Build lc0 with CUDA backend targeting Blackwell (sm_120)
+# NVCC_FLAGS sets the GPU arch; lc0 uses meson which doesn't have a cuda_arch option
 RUN git clone --recurse-submodules https://github.com/LeelaChessZero/lc0.git /tmp/lc0 \
     && cd /tmp/lc0 \
-    && CUDA_VISIBLE_DEVICES="" ./build.sh \
-        -Dbackends=cuda \
-        -Dcuda_arch="sm_120" \
+    && NVCC_FLAGS="-arch=sm_120" ./build.sh -Dbackends=cuda \
     && cp build/release/lc0 /usr/local/bin/lc0 \
     && chmod +x /usr/local/bin/lc0 \
     && rm -rf /tmp/lc0
