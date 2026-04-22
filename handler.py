@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 from datetime import datetime, timezone
 
 import runpod
@@ -24,6 +25,7 @@ LC0_PATH: str = os.environ.get("LC0_PATH", "/usr/local/bin/lc0")
 LC0_NODES: int = int(os.environ.get("LC0_NODES", "25000"))
 LC0_NETWORK: str = os.environ.get("LC0_NETWORK", "")
 LC0_SYZYGY_PATH: str = os.environ.get("LC0_SYZYGY_PATH", "/runpod-volume/syzygy")
+LC0_BACKEND: str = os.environ.get("LC0_BACKEND", "cudnn-fp16")
 DATABASE_URL: str = os.environ["DATABASE_URL"]
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
@@ -32,6 +34,42 @@ elif DATABASE_URL.startswith("postgresql://") and "+" not in DATABASE_URL.split(
 
 _engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 _SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False)
+
+
+def _log_startup_diagnostics() -> None:
+    log.info(
+        "Lc0 startup: path=%s backend=%s network=%s syzygy=%s",
+        LC0_PATH,
+        LC0_BACKEND,
+        LC0_NETWORK or "<default>",
+        LC0_SYZYGY_PATH,
+    )
+
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,driver_version,cuda_version",
+                "--format=csv,noheader",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except FileNotFoundError:
+        log.warning("Lc0 startup: nvidia-smi not found; unable to report CUDA runtime")
+        return
+    except subprocess.SubprocessError as exc:
+        log.warning("Lc0 startup: failed to query CUDA runtime via nvidia-smi: %s", exc)
+        return
+
+    gpu_lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if gpu_lines:
+        for index, line in enumerate(gpu_lines, start=1):
+            log.info("Lc0 startup: gpu[%d]=%s", index, line)
+    else:
+        log.warning("Lc0 startup: nvidia-smi returned no GPU information")
 
 
 def _save_analysis(session, game_id: str, result) -> None:
@@ -122,6 +160,7 @@ def handler(job: dict) -> dict:
             nodes=nodes,
             weights_path=weights_path,
             syzygy_path=LC0_SYZYGY_PATH,
+            backend=LC0_BACKEND,
         )
     except Exception as exc:
         log.error("Analysis failed for game_id=%s: %s", game_id, exc, exc_info=True)
@@ -154,5 +193,7 @@ def handler(job: dict) -> dict:
         "status": "ok",
     }
 
+
+_log_startup_diagnostics()
 
 runpod.serverless.start({"handler": handler})

@@ -135,6 +135,7 @@ def analyze_pgn(
     move_callback: "callable[[int, int, str], None] | None" = None,
     weights_path: str = "",
     syzygy_path: str = "",
+    backend: str = "",
 ) -> Lc0GameResult:
     """Analyze a full PGN with Lc0 and return per-move WDL results."""
     game = chess.pgn.read_game(io.StringIO(pgn_text))
@@ -154,7 +155,11 @@ def analyze_pgn(
     white_deltas: list[float] = []
     black_deltas: list[float] = []
 
-    with chess.engine.SimpleEngine.popen_uci(lc0_path) as engine:
+    cmd = [lc0_path]
+    if backend:
+        cmd.append(f"--backend={backend}")
+
+    with chess.engine.SimpleEngine.popen_uci(cmd) as engine:
         config: dict[str, str] = {"UCI_ShowWDL": "true"}
         if weights_path:
             config["WeightsFile"] = weights_path
