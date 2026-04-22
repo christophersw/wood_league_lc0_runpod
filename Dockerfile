@@ -1,7 +1,7 @@
 # ── Stage 1: build lc0 from source against CUDA 12.8 ─────────────────────────
 # No Linux pre-built lc0 binary exists — all release assets are Windows/Android.
 # CUDA 12.8 devel image required for the nvcc compiler.
-FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04 AS builder
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -28,7 +28,7 @@ RUN git clone --branch v0.32.1 --depth 1 --recurse-submodules https://github.com
 
 # ── Stage 2: slim runtime image ───────────────────────────────────────────────
 # cudnn-runtime ships only the CUDA + cuDNN shared libs needed to run lc0.
-FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04
+FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -40,15 +40,15 @@ WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        python3.11 \
-        python3.11-venv \
+        python3 \
+        python3-venv \
+        python3-pip \
         curl \
         libopenblas0 \
         zlib1g \
-    && ln -sf /usr/bin/python3.11 /usr/local/bin/python \
-    && ln -sf /usr/bin/python3.11 /usr/local/bin/python3 \
-    && python3.11 -m ensurepip --upgrade \
-    && python3.11 -m pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && ln -sf /usr/bin/python3 /usr/local/bin/python \
+    && ln -sf /usr/bin/python3 /usr/local/bin/python3 \
+    && python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/bin/lc0 /usr/local/bin/lc0
@@ -61,6 +61,6 @@ COPY pyproject.toml README.md ./
 COPY lc0_worker ./lc0_worker
 COPY handler.py ./
 
-RUN python3.11 -m pip install --no-cache-dir .
+RUN python3 -m pip install --no-cache-dir .
 
-CMD ["python3.11", "handler.py"]
+CMD ["python3", "handler.py"]
