@@ -110,3 +110,16 @@ class Lc0MoveAnalysis(Base):
     classification: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
     analysis: Mapped[Lc0GameAnalysis] = relationship(back_populates="moves")
+
+
+class SystemEvent(Base):
+    __tablename__ = "system_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(32), index=True)
+    status: Mapped[str] = mapped_column(String(16), index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+    duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    details: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
