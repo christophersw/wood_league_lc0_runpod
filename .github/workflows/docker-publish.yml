@@ -1,7 +1,7 @@
 name: Build and Push Lc0 RunPod Image
 
 concurrency:
-  group: woodland-lc0-runpod-publish-${{ github.ref }}
+  group: wood-league-lc0-runpod-publish-${{ github.ref }}
   cancel-in-progress: true
 
 on:
@@ -56,7 +56,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/woodland-lc0-runpod
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/wood-league-lc0-runpod
           tags: |
             type=raw,value=latest
             type=sha,format=short

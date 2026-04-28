@@ -1,8 +1,8 @@
-# woodland_lc0_runpod
+# wood_league_lc0_runpod
 
 RunPod Serverless worker for Lc0 game analysis.
 
-This is now the canonical Lc0 RunPod worker repo for Woodland Chess.
+This is now the canonical Lc0 RunPod worker repo for Wood League Chess.
 
 ## What it does
 
@@ -38,8 +38,8 @@ python handler.py
 ## Docker image
 
 ```bash
-docker build -t <docker-username>/woodland-lc0-runpod:latest .
-docker push <docker-username>/woodland-lc0-runpod:latest
+docker build -t <docker-username>/wood-league-lc0-runpod:latest .
+docker push <docker-username>/wood-league-lc0-runpod:latest
 ```
 
 ## Automated Docker Hub publish
@@ -65,6 +65,6 @@ Workflow files:
 Use this repo as the only Lc0 RunPod image source.
 
 With the new layout:
-- `woodland_dispatchers` submits Lc0 jobs to RunPod
-- `woodland_lc0_runpod` executes Lc0 analysis on RunPod
-- `woodland_lc0` no longer needs to be the deployed submitter/image repo
+- `wood_league_dispatchers` submits Lc0 jobs to RunPod
+- `wood_league_lc0_runpod` executes Lc0 analysis on RunPod
+- `wood_league_lc0` no longer needs to be the deployed submitter/image repo

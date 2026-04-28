@@ -1,5 +1,5 @@
 [project]
-name = "woodland-lc0-runpod"
+name = "wood-league-lc0-runpod"
 version = "0.1.0"
 description = "RunPod Serverless worker for Lc0 analysis"
 readme = "README.md"
