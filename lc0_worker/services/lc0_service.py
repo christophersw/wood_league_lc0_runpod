@@ -41,6 +41,7 @@ class Lc0MoveResult:
     cp_equiv: float
     best_move: str
     arrow_uci: str
+    arrow_uci_2: str      # 2nd-best candidate UCI from multipv=2 (empty string if unavailable)
     move_win_delta: float
     classification: str
 
@@ -194,6 +195,9 @@ def analyze_pgn(
             best_move_obj = pre_top.get("pv", [None])[0]
             best_move_str = best_move_obj.uci() if best_move_obj else ""
 
+            second_move_obj = pre_alt.get("pv", [None])[0] if pre_alt is not None else None
+            second_move_str = second_move_obj.uci() if second_move_obj else ""
+
             alt_win_delta: float | None = None
             if pre_alt is not None:
                 alt_w, _, _ = _extract_wdl(pre_alt)
@@ -270,6 +274,7 @@ def analyze_pgn(
                     cp_equiv=cp_eq,
                     best_move=best_move_str,
                     arrow_uci=best_move_str,
+                    arrow_uci_2=second_move_str,
                     move_win_delta=win_delta,
                     classification=classification,
                 )

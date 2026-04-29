@@ -147,6 +147,7 @@ def _save_analysis(session, game_id: str, result) -> None:
                 cp_equiv=mr.cp_equiv,
                 best_move=mr.best_move,
                 arrow_uci=mr.arrow_uci,
+                arrow_uci_2=mr.arrow_uci_2,
                 move_win_delta=mr.move_win_delta,
                 classification=mr.classification,
             )
