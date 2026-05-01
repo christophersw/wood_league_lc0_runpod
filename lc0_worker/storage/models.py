@@ -10,6 +10,7 @@ class Base(DeclarativeBase):
 
 class Game(Base):
     """Minimal game record — PGN source for analysis. Full game data lives in the main app."""
+
     __tablename__ = "games"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -18,12 +19,17 @@ class Game(Base):
     white_username: Mapped[str | None] = mapped_column(String(120), nullable=True)
     black_username: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
-    lc0_analysis: Mapped["Lc0GameAnalysis | None"] = relationship(back_populates="game", uselist=False)
-    analysis_jobs: Mapped[list["AnalysisJob"]] = relationship(back_populates="game", cascade="all, delete-orphan")
+    lc0_analysis: Mapped["Lc0GameAnalysis | None"] = relationship(
+        back_populates="game", uselist=False
+    )
+    analysis_jobs: Mapped[list["AnalysisJob"]] = relationship(
+        back_populates="game", cascade="all, delete-orphan"
+    )
 
 
 class AnalysisJob(Base):
     """Work queue for Lc0 analysis jobs."""
+
     __tablename__ = "analysis_jobs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -48,6 +54,7 @@ class AnalysisJob(Base):
 
 class WorkerHeartbeat(Base):
     """Lc0 worker health monitoring."""
+
     __tablename__ = "worker_heartbeats"
 
     worker_id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -66,10 +73,13 @@ class WorkerHeartbeat(Base):
 
 class Lc0GameAnalysis(Base):
     """Lc0 WDL aggregate analysis for a game."""
+
     __tablename__ = "lc0_game_analysis"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    game_id: Mapped[str] = mapped_column(ForeignKey("games.id"), unique=True, index=True)
+    game_id: Mapped[str] = mapped_column(
+        ForeignKey("games.id"), unique=True, index=True
+    )
     analyzed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     engine_nodes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     network_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
@@ -87,15 +97,20 @@ class Lc0GameAnalysis(Base):
     black_inaccuracies: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     game: Mapped[Game] = relationship(back_populates="lc0_analysis")
-    moves: Mapped[list["Lc0MoveAnalysis"]] = relationship(back_populates="analysis", cascade="all, delete-orphan")
+    moves: Mapped[list["Lc0MoveAnalysis"]] = relationship(
+        back_populates="analysis", cascade="all, delete-orphan"
+    )
 
 
 class Lc0MoveAnalysis(Base):
     """Per-move Lc0 WDL results."""
+
     __tablename__ = "lc0_move_analysis"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    analysis_id: Mapped[int] = mapped_column(ForeignKey("lc0_game_analysis.id"), index=True)
+    analysis_id: Mapped[int] = mapped_column(
+        ForeignKey("lc0_game_analysis.id"), index=True
+    )
     ply: Mapped[int] = mapped_column(Integer)
     san: Mapped[str] = mapped_column(String(32))
     fen: Mapped[str] = mapped_column(Text)
@@ -107,6 +122,7 @@ class Lc0MoveAnalysis(Base):
     best_move: Mapped[str] = mapped_column(String(32), default="")
     arrow_uci: Mapped[str] = mapped_column(String(8), default="")
     arrow_uci_2: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    arrow_uci_3: Mapped[str | None] = mapped_column(String(8), nullable=True)
     move_win_delta: Mapped[float | None] = mapped_column(Float, nullable=True)
     classification: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
@@ -119,8 +135,12 @@ class SystemEvent(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     event_type: Mapped[str] = mapped_column(String(32), index=True)
     status: Mapped[str] = mapped_column(String(16), index=True)
-    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, index=True
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, index=True
+    )
     duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
     details: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

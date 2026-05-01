@@ -8,6 +8,7 @@ via UCI_ShowWDL=true. This service captures per-move WDL and derives:
     - Q-equivalent centipawns via: cp = 111.71 * tan(1.56 * Q)
     - Game-level WDL summary (final position probabilities averaged over the game)
 """
+
 from __future__ import annotations
 
 import io
@@ -41,9 +42,10 @@ class Lc0MoveResult:
     cp_equiv: float
     best_move: str
     arrow_uci: str
-    arrow_uci_2: str      # 2nd-best candidate UCI from multipv=2 (empty string if unavailable)
-    move_win_delta: float
-    classification: str
+    arrow_uci_2: str = ""  # 2nd-best candidate UCI
+    arrow_uci_3: str = ""  # 3rd-best candidate UCI
+    move_win_delta: float = 0.0
+    classification: str = "best"
 
 
 @dataclass
@@ -181,13 +183,15 @@ def analyze_pgn(
             san = board.san(move)
             is_capture = board.is_capture(move)
 
-            pre_results = engine.analyse(board, limit, multipv=2)
+            pre_results = engine.analyse(board, limit, multipv=3)
             if isinstance(pre_results, list):
                 pre_top = pre_results[0]
                 pre_alt = pre_results[1] if len(pre_results) > 1 else None
+                pre_third = pre_results[2] if len(pre_results) > 2 else None
             else:
                 pre_top = pre_results
                 pre_alt = None
+                pre_third = None
 
             pre_w, pre_d, pre_l = _extract_wdl(pre_top)
             mover_win_before = pre_w / 10.0
@@ -195,8 +199,14 @@ def analyze_pgn(
             best_move_obj = pre_top.get("pv", [None])[0]
             best_move_str = best_move_obj.uci() if best_move_obj else ""
 
-            second_move_obj = pre_alt.get("pv", [None])[0] if pre_alt is not None else None
+            second_move_obj = (
+                pre_alt.get("pv", [None])[0] if pre_alt is not None else None
+            )
+            third_move_obj = (
+                pre_third.get("pv", [None])[0] if pre_third is not None else None
+            )
             second_move_str = second_move_obj.uci() if second_move_obj else ""
+            third_move_str = third_move_obj.uci() if third_move_obj else ""
 
             alt_win_delta: float | None = None
             if pre_alt is not None:
@@ -275,6 +285,7 @@ def analyze_pgn(
                     best_move=best_move_str,
                     arrow_uci=best_move_str,
                     arrow_uci_2=second_move_str,
+                    arrow_uci_3=third_move_str,
                     move_win_delta=win_delta,
                     classification=classification,
                 )
@@ -304,7 +315,9 @@ def analyze_pgn(
             avg_loss_prob=sum(loss_probs) / len(loss_probs),
             blunders=sum(1 for d in deltas if d >= _BLUNDER_WP_LOSS),
             mistakes=sum(1 for d in deltas if _MISTAKE_WP_LOSS <= d < _BLUNDER_WP_LOSS),
-            inaccuracies=sum(1 for d in deltas if _INACCURACY_WP_LOSS <= d < _MISTAKE_WP_LOSS),
+            inaccuracies=sum(
+                1 for d in deltas if _INACCURACY_WP_LOSS <= d < _MISTAKE_WP_LOSS
+            ),
         )
 
     network_name = ""
@@ -315,8 +328,12 @@ def analyze_pgn(
         pass
 
     return Lc0GameResult(
-        white_stats=_player_stats(white_win_probs, white_draw_probs, white_loss_probs, white_deltas),
-        black_stats=_player_stats(black_win_probs, black_draw_probs, black_loss_probs, black_deltas),
+        white_stats=_player_stats(
+            white_win_probs, white_draw_probs, white_loss_probs, white_deltas
+        ),
+        black_stats=_player_stats(
+            black_win_probs, black_draw_probs, black_loss_probs, black_deltas
+        ),
         moves=move_results,
         engine_nodes=nodes,
         network_name=network_name,

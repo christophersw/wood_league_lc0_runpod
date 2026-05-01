@@ -1,4 +1,5 @@
 """RunPod Serverless handler for Lc0 analysis."""
+
 from __future__ import annotations
 
 import json
@@ -14,8 +15,12 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from lc0_worker.services.lc0_service import analyze_pgn
-from lc0_worker.storage.models import AnalysisJob, Lc0GameAnalysis, Lc0MoveAnalysis
-from lc0_worker.storage.models import SystemEvent
+from lc0_worker.storage.models import (
+    AnalysisJob,
+    Lc0GameAnalysis,
+    Lc0MoveAnalysis,
+    SystemEvent,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,7 +37,10 @@ LC0_BACKEND: str = os.environ.get("LC0_BACKEND", "cudnn-fp16")
 DATABASE_URL: str = os.environ["DATABASE_URL"]
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
-elif DATABASE_URL.startswith("postgresql://") and "+" not in DATABASE_URL.split("://", 1)[0]:
+elif (
+    DATABASE_URL.startswith("postgresql://")
+    and "+" not in DATABASE_URL.split("://", 1)[0]
+):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 _engine = create_engine(DATABASE_URL, pool_pre_ping=True)
@@ -148,6 +156,7 @@ def _save_analysis(session, game_id: str, result) -> None:
                 best_move=mr.best_move,
                 arrow_uci=mr.arrow_uci,
                 arrow_uci_2=mr.arrow_uci_2,
+                arrow_uci_3=mr.arrow_uci_3,
                 move_win_delta=mr.move_win_delta,
                 classification=mr.classification,
             )
