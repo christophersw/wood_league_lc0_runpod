@@ -1,1 +1,5 @@
 BT4-it332.pb.gz
+
+# Snyk scan artifacts
+.snyk-venv/
+.snyk-requirements.txt
