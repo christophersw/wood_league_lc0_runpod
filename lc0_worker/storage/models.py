@@ -123,6 +123,9 @@ class Lc0MoveAnalysis(Base):
     arrow_uci: Mapped[str] = mapped_column(String(8), default="")
     arrow_uci_2: Mapped[str | None] = mapped_column(String(8), nullable=True)
     arrow_uci_3: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    arrow_score_1: Mapped[float | None] = mapped_column(Float, nullable=True)
+    arrow_score_2: Mapped[float | None] = mapped_column(Float, nullable=True)
+    arrow_score_3: Mapped[float | None] = mapped_column(Float, nullable=True)
     move_win_delta: Mapped[float | None] = mapped_column(Float, nullable=True)
     classification: Mapped[str | None] = mapped_column(String(16), nullable=True)
 

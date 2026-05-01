@@ -44,6 +44,9 @@ class Lc0MoveResult:
     arrow_uci: str
     arrow_uci_2: str = ""  # 2nd-best candidate UCI
     arrow_uci_3: str = ""  # 3rd-best candidate UCI
+    arrow_score_1: float | None = None
+    arrow_score_2: float | None = None
+    arrow_score_3: float | None = None
     move_win_delta: float = 0.0
     classification: str = "best"
 
@@ -195,6 +198,16 @@ def analyze_pgn(
 
             pre_w, pre_d, pre_l = _extract_wdl(pre_top)
             mover_win_before = pre_w / 10.0
+            pre_q = (pre_w - pre_l) / 1000.0
+            score_1 = _q_to_cp(pre_q)
+            score_2: float | None = None
+            score_3: float | None = None
+            if pre_alt is not None:
+                alt_w, _, alt_l = _extract_wdl(pre_alt)
+                score_2 = _q_to_cp((alt_w - alt_l) / 1000.0)
+            if pre_third is not None:
+                third_w, _, third_l = _extract_wdl(pre_third)
+                score_3 = _q_to_cp((third_w - third_l) / 1000.0)
 
             best_move_obj = pre_top.get("pv", [None])[0]
             best_move_str = best_move_obj.uci() if best_move_obj else ""
@@ -286,6 +299,9 @@ def analyze_pgn(
                     arrow_uci=best_move_str,
                     arrow_uci_2=second_move_str,
                     arrow_uci_3=third_move_str,
+                    arrow_score_1=score_1,
+                    arrow_score_2=score_2,
+                    arrow_score_3=score_3,
                     move_win_delta=win_delta,
                     classification=classification,
                 )
