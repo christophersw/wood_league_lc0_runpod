@@ -1,12 +1,20 @@
-"""Leela Chess Zero (Lc0) analysis service.
+"""
+Title: lc0_service.py — Leela Chess Zero (Lc0) analysis service
+Description:
+    Analyzes chess games using the Lc0 engine over UCI. Captures per-move
+    WDL probabilities, derives move quality and classification, and extracts
+    full SAN continuations for up to three multipv lines per position.
 
-Lc0 outputs native WDL (Win/Draw/Loss) probabilities in permille (0-1000, sum=1000)
-via UCI_ShowWDL=true. This service captures per-move WDL and derives:
-    - Win probability for each side at each ply
-    - Move quality (win% delta from the mover's perspective)
-    - Move classification (brilliant/great/best/excellent/inaccuracy/mistake/blunder)
-    - Q-equivalent centipawns via: cp = 111.71 * tan(1.56 * Q)
-    - Game-level WDL summary (final position probabilities averaged over the game)
+    Lc0 outputs native WDL (Win/Draw/Loss) probabilities in permille (0-1000, sum=1000)
+    via UCI_ShowWDL=true. This service captures per-move WDL and derives:
+        - Win probability for each side at each ply
+        - Move quality (win% delta from the mover's perspective)
+        - Move classification (brilliant/great/best/excellent/inaccuracy/mistake/blunder)
+        - Q-equivalent centipawns via: cp = 111.71 * tan(1.56 * Q)
+        - Game-level WDL summary (final position probabilities averaged over the game)
+
+Changelog:
+    2026-05-05 (#1): Extract and persist full PV continuations for all 3 multipv lines
 """
 
 from __future__ import annotations
@@ -49,6 +57,9 @@ class Lc0MoveResult:
     arrow_score_3: float | None = None
     move_win_delta: float = 0.0
     classification: str = "best"
+    pv_san_1: list[str] = field(default_factory=list)  # SAN continuation — best line
+    pv_san_2: list[str] = field(default_factory=list)  # SAN continuation — 2nd-best line
+    pv_san_3: list[str] = field(default_factory=list)  # SAN continuation — 3rd-best line
 
 
 @dataclass
@@ -132,6 +143,31 @@ def _classify(
     if win_delta <= _BRILLIANT_MAX_LOSS:
         return "best"
     return "excellent"
+
+
+def _pv_to_san(board: chess.Board, pv: list) -> list[str]:
+    """Convert a list of chess.Move objects to SAN notation strings.
+
+    Walks the principal variation on a temporary board copy so the source
+    position is never mutated. Stops early if a move is illegal on the
+    running copy (should not happen with valid engine output, but guards
+    against corrupt PV lists).
+
+    Parameters:
+        board: the position *before* the first move in pv is played.
+        pv:    list of chess.Move objects returned by engine analysis.
+
+    Returns:
+        List of SAN strings for each move in pv, in order.
+    """
+    temp_board = board.copy()
+    san_moves: list[str] = []
+    for pv_move in pv:
+        if not temp_board.is_legal(pv_move):
+            break
+        san_moves.append(temp_board.san(pv_move))
+        temp_board.push(pv_move)
+    return san_moves
 
 
 def analyze_pgn(
@@ -221,6 +257,11 @@ def analyze_pgn(
             second_move_str = second_move_obj.uci() if second_move_obj else ""
             third_move_str = third_move_obj.uci() if third_move_obj else ""
 
+            # Full SAN continuations for each multipv line (board not yet pushed).
+            pv_san_1 = _pv_to_san(board, pre_top.get("pv", []))
+            pv_san_2 = _pv_to_san(board, pre_alt.get("pv", [])) if pre_alt is not None else []
+            pv_san_3 = _pv_to_san(board, pre_third.get("pv", [])) if pre_third is not None else []
+
             alt_win_delta: float | None = None
             if pre_alt is not None:
                 alt_w, _, _ = _extract_wdl(pre_alt)
@@ -304,6 +345,9 @@ def analyze_pgn(
                     arrow_score_3=score_3,
                     move_win_delta=win_delta,
                     classification=classification,
+                    pv_san_1=pv_san_1,
+                    pv_san_2=pv_san_2,
+                    pv_san_3=pv_san_3,
                 )
             )
 

@@ -162,6 +162,9 @@ def _save_analysis(session, game_id: str, result) -> None:
                 arrow_score_3=mr.arrow_score_3,
                 move_win_delta=mr.move_win_delta,
                 classification=mr.classification,
+                pv_san_1=json.dumps(mr.pv_san_1) if mr.pv_san_1 else None,
+                pv_san_2=json.dumps(mr.pv_san_2) if mr.pv_san_2 else None,
+                pv_san_3=json.dumps(mr.pv_san_3) if mr.pv_san_3 else None,
             )
         )
 
