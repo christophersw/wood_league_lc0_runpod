@@ -46,6 +46,9 @@ elif (
 _engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 _SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False)
 
+from lc0_worker.storage.migrate_add_pv_continuations import migrate_add_pv_continuations
+migrate_add_pv_continuations(_engine)
+
 
 def _write_system_event(
     session,
